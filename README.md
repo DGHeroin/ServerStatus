@@ -36,7 +36,7 @@ After=network.target
 Type=simple
 User=root
 WorkingDirectory=/usr/local/bin/
-ExecStart=/app/ServerStatus/ServerStatus agent --addr "http://127.0.0.1:16808" --auth token_of_agent --s vps-node-name
+ExecStart=ServerStatus agent --addr "http://127.0.0.1:16808" --auth token_of_agent --s vps-node-name
 Restart=always
 
 [Install]
