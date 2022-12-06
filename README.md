@@ -4,7 +4,7 @@
 
 ## Install
 ```shell
-wget -q https://www.github.com/DGHeroin/ServerStatus/releases/latest/download/package.zip \
+wget -q https://www.github.com/DGHeroin/ServerStatus/releases/latest/download/ServerStatus-linux-amd64 \
   -O /usr/local/bin/ServerStatus && \
   chmod +x /usr/local/bin/ServerStatus
 ```
