@@ -4,6 +4,7 @@ type ServerStatus struct {
     Name              string              `json:"name"`
     LastSeen          int64               `json:"last_seen"`
     Uptime            uint64              `json:"uptime"`
+    Load              [3]float64          `json:"load"`
     Network           []*NetworkInterface `json:"network_interface,omitempty"`
     Disk              []*DiskInfo         `json:"disk,omitempty"`
     Partition         []*Partition        `json:"partition,omitempty"`

@@ -8,6 +8,7 @@ import (
     "github.com/shirou/gopsutil/v3/cpu"
     "github.com/shirou/gopsutil/v3/disk"
     "github.com/shirou/gopsutil/v3/host"
+    "github.com/shirou/gopsutil/v3/load"
     "github.com/shirou/gopsutil/v3/mem"
     "github.com/shirou/gopsutil/v3/net"
     "github.com/spf13/cobra"
@@ -60,9 +61,14 @@ func monitor(ch chan *ServerStatus) {
             networks := getNetworkInterfaces(lastNetwork)
             disks := getDisk(lastDisk)
             partition := getPartition()
+            var loads = [3]float64{}
+            if avg, err := load.Avg(); err == nil {
+                loads = [3]float64{avg.Load1, avg.Load5, avg.Load15}
+            }
             server := &ServerStatus{
                 Name:              sid,
                 Uptime:            uptime,
+                Load:              loads,
                 Network:           networks,
                 Disk:              disks,
                 Partition:         partition,
@@ -144,12 +150,12 @@ func getNetworkInterfaces(last []*NetworkInterface) (interfaces []*NetworkInterf
     }
     return
 }
-func getDisk(last []*DiskInfo) (interfaces []*DiskInfo) {
+func getDisk(last []*DiskInfo) (disks []*DiskInfo) {
     counters, _ := disk.IOCounters()
 
     for i := range counters {
         itf := counters[i]
-        interfaces = append(interfaces, &DiskInfo{
+        disks = append(disks, &DiskInfo{
             Name:       itf.Name,
             ReadCount:  itf.ReadCount,
             WriteCount: itf.WriteCount,
@@ -158,7 +164,7 @@ func getDisk(last []*DiskInfo) (interfaces []*DiskInfo) {
         })
 
     }
-    for _, networkInterface := range interfaces {
+    for _, networkInterface := range disks {
         for _, n := range last {
             if n.Name == networkInterface.Name {
                 networkInterface.ReadCountPerSec = networkInterface.ReadCount - n.ReadCount

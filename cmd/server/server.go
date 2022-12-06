@@ -99,15 +99,19 @@ func runServer() error {
                 sort.SliceStable(ss, func(i, j int) bool {
                     return ss[i].Name < ss[j].Name
                 })
-                table.SetHeader([]string{"Name", "Uptime", "Last Seen", "CPU", "Memory", "Partition", "Disk IO", "TPC/UDP", "Net"})
+                table.SetHeader([]string{"Name", "Uptime", "Last Seen", "CPU", "Load", "Memory", "Partition", "Disk", "IOPS", "TPC/UDP", "Net", "Net Total"})
 
                 for _, s := range ss {
                     // network
                     sumTx := uint64(0)
                     sumRx := uint64(0)
+                    sumTxTotal := uint64(0)
+                    sumRxTotal := uint64(0)
                     for _, ni := range s.Network {
                         sumTx += ni.TXps
                         sumRx += ni.RXps
+                        sumTxTotal += ni.TX
+                        sumRxTotal += ni.RX
                     }
                     networkInfo := fmt.Sprintf("↑%v↓%v", humanize.IBytes(sumTx), humanize.IBytes(sumRx))
 
@@ -124,8 +128,8 @@ func runServer() error {
                         sumDiskWps += info.WriteCountPerSec
                     }
 
-                    diskIOInfo := fmt.Sprintf("↑%v↓%v|%v %v ",
-                        humanize.IBytes(sumDiskR), humanize.IBytes(sumDiskR), sumDiskRps, sumDiskWps)
+                    diskIOInfo := fmt.Sprintf("↑%v↓%v",
+                        humanize.Bytes(sumDiskR), humanize.Bytes(sumDiskR))
                     // partitions
                     sumPartition := uint64(0)
                     sumPartitionFree := uint64(0)
@@ -134,22 +138,24 @@ func runServer() error {
                         sumPartitionFree += partition.Free
                     }
                     partitionInfo := fmt.Sprintf("%v/%v",
-                        humanize.IBytes(sumPartitionFree), humanize.IBytes(sumPartition),
+                        humanize.IBytes(sumPartition-sumPartitionFree), humanize.IBytes(sumPartition),
                     )
                     table.Append([]string{
                         s.Name,
                         humanDuration(time.Second * time.Duration(s.Uptime)),
                         humanDuration(time.Now().Sub(time.Unix(s.LastSeen, 0))),
                         fmt.Sprintf(`%.2f%%`, s.CpuUsedPercent),
-                        fmt.Sprintf(`%s/%s/%s`,
+                        fmt.Sprintf("%.2f %.2f %.2f", s.Load[0], s.Load[1], s.Load[2]),
+                        fmt.Sprintf(`%s/%s`,
                             humanize.IBytes(uint64(s.MemoryUsedPercent/100.0*float64(s.MemoryTotal))),
                             humanize.IBytes(s.MemoryTotal),
-                            humanize.IBytes(s.SwapTotal),
                         ),
                         partitionInfo,
                         diskIOInfo,
+                        fmt.Sprintf(`%v/%v`, sumDiskRps, sumDiskWps),
                         fmt.Sprintf(`%v/%v`, s.TcpNum, s.UdpNum),
                         networkInfo,
+                        fmt.Sprintf(`%v/%v`, humanize.Bytes(sumTxTotal), humanize.Bytes(sumRxTotal)),
                     })
                 }
             }
