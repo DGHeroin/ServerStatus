@@ -108,8 +108,8 @@ func runServer() error {
                     sumTxTotal := uint64(0)
                     sumRxTotal := uint64(0)
                     for _, ni := range s.Network {
-                        sumTx += ni.TXps
-                        sumRx += ni.RXps
+                        sumTx += ni.TXPerSec
+                        sumRx += ni.RXPerSec
                         sumTxTotal += ni.TX
                         sumRxTotal += ni.RX
                     }
@@ -143,7 +143,7 @@ func runServer() error {
                     table.Append([]string{
                         s.Name,
                         humanDuration(time.Second * time.Duration(s.Uptime)),
-                        humanDuration(time.Now().Sub(time.Unix(s.LastSeen, 0))),
+                        time.Now().Sub(time.Unix(s.LastSeen, 0)).Round(time.Millisecond).String(),
                         fmt.Sprintf(`%.2f%%`, s.CpuUsedPercent),
                         fmt.Sprintf("%.2f %.2f %.2f", s.Load[0], s.Load[1], s.Load[2]),
                         fmt.Sprintf(`%s/%s`,

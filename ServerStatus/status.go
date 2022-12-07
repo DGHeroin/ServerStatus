@@ -20,15 +20,15 @@ type ServerStatus struct {
     UdpNum            int                 `json:"udp_num"`
 }
 type NetworkInterface struct {
-    Name  string `json:"name"`
-    RX    uint64 `json:"rx"`
-    TX    uint64 `json:"tx"`
-    RXps  uint64 `json:"rx_ps"`
-    TXps  uint64 `json:"tx_ps"`
-    RXP   uint64 `json:"rxp"`
-    TXP   uint64 `json:"txp"`
-    RXPps uint64 `json:"rxp_ps"`
-    TXPps uint64 `json:"txp_ps"`
+    Name           string `json:"name"`
+    RX             uint64 `json:"rx"`
+    TX             uint64 `json:"tx"`
+    RXPerSec       uint64 `json:"rx_ps"`
+    TXPerSec       uint64 `json:"tx_ps"`
+    RXPacket       uint64 `json:"rxp"`
+    TXPacket       uint64 `json:"txp"`
+    RXPacketPerSec uint64 `json:"rxp_ps"`
+    TXPacketPerSec uint64 `json:"txp_ps"`
 }
 type DiskInfo struct {
     Name             string `json:"name"`

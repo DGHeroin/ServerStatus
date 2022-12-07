@@ -31,10 +31,13 @@ var (
 )
 
 var (
-    sid     string
-    addr    string
-    auth    string
-    isDebug bool
+    sid            string
+    addr           string
+    auth           string
+    isDebug        bool
+    netDevs        []string
+    diskDevs       []string
+    partitionsDevs []string
 )
 
 func init() {
@@ -42,6 +45,10 @@ func init() {
     Cmd.PersistentFlags().StringVar(&addr, "addr", "http://127.0.0.1:8080", "server base url")
     Cmd.PersistentFlags().StringVar(&auth, "auth", "", "agent auth")
     Cmd.PersistentFlags().BoolVar(&isDebug, "debug", false, "is debug")
+    Cmd.PersistentFlags().StringSliceVar(&netDevs, "net", []string{}, "network interface")
+    Cmd.PersistentFlags().StringSliceVar(&diskDevs, "disk", []string{}, "disks")
+    Cmd.PersistentFlags().StringSliceVar(&partitionsDevs, "partitions", []string{}, "partitions")
+
 }
 func monitor(ch chan *ServerStatus) {
     lastNetwork := getNetworkInterfaces(nil)
@@ -97,6 +104,9 @@ func runAgent() error {
             if isDebug {
                 _, _ = fmt.Fprintln(os.Stdout, string(str))
             }
+            if addr == "" {
+                continue
+            }
             request, err := http.NewRequest(http.MethodPost, addr+"/api/agent/_post", bytes.NewBuffer(str))
             if err != nil {
                 _, _ = fmt.Fprintln(os.Stderr, err)
@@ -124,27 +134,26 @@ func getNetworkInterfaces(last []*NetworkInterface) (interfaces []*NetworkInterf
     counters, _ := net.IOCounters(true)
     for i := range counters {
         itf := counters[i]
+        if !containsStringsZeroTrue(netDevs, itf.Name) {
+            continue
+        }
         interfaces = append(interfaces, &NetworkInterface{
-            Name:  itf.Name,
-            RXps:  0,
-            TXps:  0,
-            TX:    itf.BytesRecv,
-            RX:    itf.BytesSent,
-            RXP:   itf.PacketsRecv,
-            TXP:   itf.PacketsSent,
-            RXPps: 0,
-            TXPps: 0,
+            Name:     itf.Name,
+            RX:       itf.BytesRecv,
+            TX:       itf.BytesSent,
+            RXPacket: itf.PacketsRecv,
+            TXPacket: itf.PacketsSent,
         })
 
     }
-    for _, networkInterface := range interfaces {
+    for _, d := range interfaces {
         for _, n := range last {
-            if n.Name == networkInterface.Name {
-                networkInterface.RXps = networkInterface.RX - n.RX
-                networkInterface.TXps = networkInterface.TX - n.TX
+            if n.Name == d.Name {
+                d.RXPerSec = d.RX - n.RX
+                d.TXPerSec = d.TX - n.TX
 
-                networkInterface.RXPps = networkInterface.RXP - n.RXP
-                networkInterface.TXPps = networkInterface.RXP - n.RXP
+                d.RXPacketPerSec = d.RXPacket - n.RXPacket
+                d.TXPacketPerSec = d.TXPacket - n.TXPacket
             }
         }
     }
@@ -155,6 +164,9 @@ func getDisk(last []*DiskInfo) (disks []*DiskInfo) {
 
     for i := range counters {
         itf := counters[i]
+        if !containsStringsZeroTrue(diskDevs, itf.Name) {
+            continue
+        }
         disks = append(disks, &DiskInfo{
             Name:       itf.Name,
             ReadCount:  itf.ReadCount,
@@ -162,16 +174,15 @@ func getDisk(last []*DiskInfo) (disks []*DiskInfo) {
             ReadBytes:  itf.ReadBytes,
             WriteBytes: itf.WriteBytes,
         })
-
     }
-    for _, networkInterface := range disks {
+    for _, d := range disks {
         for _, n := range last {
-            if n.Name == networkInterface.Name {
-                networkInterface.ReadCountPerSec = networkInterface.ReadCount - n.ReadCount
-                networkInterface.WriteCountPerSec = networkInterface.WriteCount - n.WriteCount
+            if n.Name == d.Name {
+                d.ReadCountPerSec = d.ReadCount - n.ReadCount
+                d.WriteCountPerSec = d.WriteCount - n.WriteCount
 
-                networkInterface.ReadBytesPerSec = networkInterface.ReadBytes - n.ReadBytes
-                networkInterface.WriteBytesPerSec = networkInterface.WriteBytes - n.WriteBytes
+                d.ReadBytesPerSec = d.ReadBytes - n.ReadBytes
+                d.WriteBytesPerSec = d.WriteBytes - n.WriteBytes
             }
         }
     }
@@ -182,6 +193,9 @@ func getPartition() (result []*Partition) {
     for _, info := range partitions {
         usage, err := disk.Usage(info.Mountpoint)
         if err != nil {
+            continue
+        }
+        if !containsStringsZeroTrue(partitionsDevs, info.Mountpoint) {
             continue
         }
         result = append(result, &Partition{
@@ -198,4 +212,28 @@ func getPartition() (result []*Partition) {
         })
     }
     return
+}
+
+func containsStringsZeroTrue(ss []string, s string) bool {
+    if len(ss) == 0 {
+        return true
+    }
+    for _, v := range ss {
+        if v == s {
+            return true
+        }
+    }
+    return false
+}
+
+func containsStringsZeroFalse(ss []string, s string) bool {
+    if len(ss) == 0 {
+        return false
+    }
+    for _, v := range ss {
+        if v == s {
+            return true
+        }
+    }
+    return false
 }
