@@ -82,7 +82,7 @@ func runServer() error {
 
         mu.Lock()
         defer mu.Unlock()
-        status.LastSeen = time.Now().Unix()
+        // status.LastSeen = time.Now().Unix()
         m[status.Name] = status
     })
     r.GET("api/view/status", doAuth(authView), func(c *gin.Context) {
@@ -99,7 +99,7 @@ func runServer() error {
                 sort.SliceStable(ss, func(i, j int) bool {
                     return ss[i].Name < ss[j].Name
                 })
-                table.SetHeader([]string{"Name", "Uptime", "Last Seen", "CPU", "Load", "Memory", "Partition", "Disk", "IOPS", "TPC/UDP", "Net", "Net Total"})
+                table.SetHeader([]string{"Name", "Uptime", "Last Seen", "Load", "CPU", "Memory", "Partition", "Disk", "IOPS", "TPC/UDP", "Net", "Net Total"})
 
                 for _, s := range ss {
                     // network
@@ -137,19 +137,16 @@ func runServer() error {
                         sumPartition += partition.Total
                         sumPartitionFree += partition.Free
                     }
-                    partitionInfo := fmt.Sprintf("%v/%v",
-                        humanize.IBytes(sumPartition-sumPartitionFree), humanize.IBytes(sumPartition),
+                    partitionInfo := fmt.Sprintf("%.2f%%",
+                        float64(sumPartitionFree)/float64(sumPartition)*100.0,
                     )
                     table.Append([]string{
                         s.Name,
                         humanDuration(time.Second * time.Duration(s.Uptime)),
                         time.Now().Sub(time.Unix(s.LastSeen, 0)).Round(time.Millisecond).String(),
-                        fmt.Sprintf(`%.2f%%`, s.CpuUsedPercent),
                         fmt.Sprintf("%.2f %.2f %.2f", s.Load[0], s.Load[1], s.Load[2]),
-                        fmt.Sprintf(`%s/%s`,
-                            humanize.IBytes(uint64(s.MemoryUsedPercent/100.0*float64(s.MemoryTotal))),
-                            humanize.IBytes(s.MemoryTotal),
-                        ),
+                        fmt.Sprintf(`%.2f%%`, s.CpuUsedPercent),
+                        fmt.Sprintf(`%.2f%%`, s.MemoryUsedPercent),
                         partitionInfo,
                         diskIOInfo,
                         fmt.Sprintf(`%v/%v`, sumDiskRps, sumDiskWps),
@@ -170,6 +167,9 @@ func runServer() error {
 func doAuth(auth string) gin.HandlerFunc {
     return func(c *gin.Context) {
         authStr := c.Request.Header.Get("Authorization")
+        if authStr == "" {
+            authStr = c.Query("auth")
+        }
         if auth != authStr {
             c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": -1, "msg": "unauthorized"})
             return

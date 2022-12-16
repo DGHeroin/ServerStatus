@@ -9,6 +9,7 @@ type ServerStatus struct {
     Disk              []*DiskInfo         `json:"disk,omitempty"`
     Partition         []*Partition        `json:"partition,omitempty"`
     Cpu               string              `json:"cpu"`
+    CPUInfo           *CPUInfo            `json:"cpu_info"`
     CpuUsedPercent    float64             `json:"cpu_used_percent"`
     MemoryTotal       uint64              `json:"memory_total"`
     MemoryUsedPercent float64             `json:"memory_used_percent"`
@@ -18,6 +19,12 @@ type ServerStatus struct {
     CpuArch           string              `json:"cpu_arch"`
     TcpNum            int                 `json:"tcp_num"`
     UdpNum            int                 `json:"udp_num"`
+}
+type CPUInfo struct {
+    Name     string    `json:"name"`
+    Cores    int32     `json:"cores"`
+    Percents []float64 `json:"percents"`
+    Mhz      float64   `json:"mhz"`
 }
 type NetworkInterface struct {
     Name           string `json:"name"`

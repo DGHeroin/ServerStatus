@@ -59,6 +59,9 @@ func monitor(ch chan *ServerStatus) {
             v, _ := mem.VirtualMemory()
             info, _ := cpu.Info()
             c, _ := cpu.Percent(0*time.Second, false)
+
+            cpuInfo := getCPUInfo()
+
             uptime, _ := host.Uptime()
             arch, _ := host.KernelArch()
             version, _ := host.KernelVersion()
@@ -75,11 +78,13 @@ func monitor(ch chan *ServerStatus) {
             server := &ServerStatus{
                 Name:              sid,
                 Uptime:            uptime,
+                LastSeen:          time.Now().Unix(),
                 Load:              loads,
                 Network:           networks,
                 Disk:              disks,
                 Partition:         partition,
                 Cpu:               strconv.Itoa(runtime.NumCPU()) + "*" + info[0].ModelName,
+                CPUInfo:           cpuInfo,
                 CpuUsedPercent:    math.Round(c[0]*1000) / 1000,
                 CpuVersion:        version,
                 CpuArch:           arch,
@@ -95,6 +100,20 @@ func monitor(ch chan *ServerStatus) {
             ch <- server
         }()
     }
+}
+
+func getCPUInfo() *CPUInfo {
+    stat, err := cpu.Info()
+    if err != nil {
+        return nil
+    }
+    info := &CPUInfo{}
+    st := stat[0]
+    info.Name = st.ModelName
+    info.Cores = st.Cores
+    info.Mhz = st.Mhz
+    info.Percents, _ = cpu.Percent(0*time.Second, false)
+    return info
 }
 func runAgent() error {
     ch := make(chan *ServerStatus, 1000)
